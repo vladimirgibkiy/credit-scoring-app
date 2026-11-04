@@ -1,0 +1,55 @@
+# Название нашего сценария автоматизации, оно будет отображаться на сайте GitHub
+name: Credit Scoring CI
+
+# Условие запуска: робот включится сам, как только мы отправим (push) код в ветку main
+on:
+  push:
+    branches: [ main ]
+
+# Список задач, которые должен выполнить робот
+jobs:
+
+  # ЗАДАЧА №1: Запуск модульных тестов
+  run-tests:
+    # Запускаем задачу на чистом виртуальном компьютере с Linux Ubuntu в облаке GitHub
+    runs-on: ubuntu-latest
+    
+    # Шаги, которые компьютер будет выполнять по очереди
+    steps:
+      # Шаг 1: Скачиваем наш код из репозитория на этот виртуальный компьютер
+      - name: Check out repository code
+        uses: actions/checkout@v4
+
+      # Шаг 2: Устанавливаем на виртуалку язык Python версии 3.10
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+
+      # Шаг 3: Обновляем pip и устанавливаем библиотеки, которые нужны для работы тестов
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install httpx pytest catboost mlflow fastapi pydantic
+
+      # Шаг 4: Переходим в папку backend и запускаем наши три pytest-теста
+      - name: Run Pytest
+        run: |
+          cd backend
+          python -m pytest test_main.py
+
+  # ЗАДАЧА №2: Тестовая сборка Docker-образа
+  build-docker:
+    # Говорим роботу: начинай сборку образа ТОЛЬКО если задача run-tests прошла успешно (тесты зелёные)
+    needs: run-tests
+    runs-on: ubuntu-latest
+    
+    steps:
+      # Шаг 1: Снова скачиваем код проекта на виртуалку
+      - name: Check out repository code
+        uses: actions/checkout@v4
+
+      # Шаг 2: Запускаем сборку Docker-образа бэкенда, чтобы просто проверить, что Dockerfile написан без ошибок
+      - name: Build Backend Docker Image
+        run: |
+          docker build -t credit-backend:test ./backend
