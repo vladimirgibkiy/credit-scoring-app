@@ -1,0 +1,8 @@
+fastapi
+uvicorn
+catboost
+pandas
+pydantic
+psycopg2-binary
+mlflow
+shap
